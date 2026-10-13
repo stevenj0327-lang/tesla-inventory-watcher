@@ -1,12 +1,12 @@
 # Current deployment: free GitHub Actions
 
-The public repository now contains the free GitHub Actions workflow and GitHub match-notification adapter. Cloud inventory validation is in progress. No paid Render service or email provider was activated. See [FREE-HOSTING.md](FREE-HOSTING.md) for operation and limits. The Render/email sections below document the earlier optional implementation.
+The public repository now contains the free GitHub Actions workflow and GitHub match-notification adapter. **Inventory access is blocked:** the cloud browser starts, but Tesla returns HTTP 403. No complete cloud scan has succeeded. Scheduled attempts remain enabled; do not rely on alerts yet. No paid Render service or email provider was activated. See [FREE-HOSTING.md](FREE-HOSTING.md) for operation and limits. The Render/email sections below document the earlier optional implementation.
 
-# Tesla inventory email tracker
+# Optional legacy email worker
 
-A standalone cloud worker that checks Tesla inventory every two minutes and emails new matching vehicles. Once deployed, it runs independently of the computer used to create it.
+The original optional worker supports email delivery. The deployed free workflow instead requests five-minute checks and creates GitHub notifications only for verified matches. GitHub scheduling can run late.
 
-**Current status: code and local tests complete; cloud deployment and real email delivery are not activated or verified.** There is no deployment URL or running cloud worker yet.
+**Email/Render status:** not activated. The free GitHub deployment above is installed but blocked from inventory access.
 
 ## Search rules
 
