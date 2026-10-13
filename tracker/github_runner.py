@@ -8,7 +8,7 @@ import tempfile
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from .inventory import BrowserInventory
+from .inventory import BrowserInventory, InventoryError
 from .state import State, idempotency_key
 
 
@@ -90,9 +90,10 @@ def run(api, path, source_factory=BrowserInventory):
             with source_factory() as source:
                 matches = source.scan()
         except Exception as error:
-            state.failure('Inventory unknown (%s)' % type(error).__name__)
+            reason = str(error) if isinstance(error, InventoryError) else type(error).__name__
+            state.failure('Inventory unknown: ' + reason)
             api.save(state, path)
-            logging.warning('Inventory unavailable; no notifications created')
+            logging.warning('Inventory unavailable: %s; no notifications created', reason)
             return False
         state.success(matches)
         # Persist availability episodes BEFORE posting, so crash recovery reuses their IDs.
