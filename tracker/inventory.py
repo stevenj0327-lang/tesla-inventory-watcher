@@ -70,10 +70,14 @@ def collect_pages(fetch, model, radius):
 
 def load_inventory_page(page):
     """Wait for the site's own inventory request before issuing filtered queries."""
-    with page.expect_response(
-        lambda response: "/inventory/api/" in response.url
-        and "/inventory-results" in response.url, timeout=30000
-    ) as initial:
+    responses = []
+    def is_inventory(response):
+        return "/inventory/api/" in response.url and "/inventory-results" in response.url
+    def observe(response):
+        if is_inventory(response):
+            responses.append(response)
+    page.on("response", observe)
+    try:
         document = page.goto(
             "https://www.tesla.com/inventory/new/my?zip=91766&range=200",
             wait_until="domcontentloaded", timeout=30000)
@@ -81,7 +85,14 @@ def load_inventory_page(page):
         logging.info("Tesla inventory page HTTP %s", status)
         if status != 200:
             raise InventoryError("Tesla inventory page HTTP %s; page did not load" % status)
-    response = initial.value
+        if responses:
+            response = responses[0]
+        else:
+            with page.expect_response(is_inventory, timeout=30000) as initial:
+                pass
+            response = initial.value
+    finally:
+        page.remove_listener("response", observe)
     logging.info("Tesla website's own inventory request HTTP %s", response.status)
     if response.status != 200:
         raise InventoryError("Tesla website's own inventory request HTTP %s" % response.status)
@@ -104,7 +115,10 @@ class BrowserInventory:
             load_inventory_page(self.page)
             return self
         except Exception as error:
-            self.pw.stop()
+            try:
+                self.pw.stop()
+            except Exception:
+                logging.warning("Browser cleanup failed after initialization error")
             if isinstance(error, InventoryError):
                 raise
             raise InventoryError("Inventory page initialization failed (%s)" % type(error).__name__) from None
