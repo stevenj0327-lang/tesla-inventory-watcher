@@ -1,5 +1,6 @@
 """Public inventory adapter. No login, proxy rotation, or challenge bypass."""
 import json
+import logging
 import math
 import re
 import time
@@ -67,6 +68,28 @@ def collect_pages(fetch, model, radius):
     raise InventoryError("Inventory exceeds the 1,000-vehicle safety limit")
 
 
+def load_inventory_page(page):
+    """Wait for the site's own inventory request before issuing filtered queries."""
+    with page.expect_response(
+        lambda response: "/inventory/api/" in response.url
+        and "/inventory-results" in response.url, timeout=30000
+    ) as initial:
+        document = page.goto(
+            "https://www.tesla.com/inventory/new/my?zip=91766&range=200",
+            wait_until="domcontentloaded", timeout=30000)
+        status = document.status if document else None
+        logging.info("Tesla inventory page HTTP %s", status)
+        if status != 200:
+            raise InventoryError("Tesla inventory page HTTP %s; page did not load" % status)
+    response = initial.value
+    logging.info("Tesla website's own inventory request HTTP %s", response.status)
+    if response.status != 200:
+        raise InventoryError("Tesla website's own inventory request HTTP %s" % response.status)
+    # This initial response may have default price/location filters. It is only
+    # a readiness signal, never the matching inventory or a successful scan.
+    parse_page(response.json())
+
+
 class BrowserInventory:
     """Fetch the site's same-origin JSON in a normal Chromium session."""
 
@@ -78,12 +101,13 @@ class BrowserInventory:
             self.context = self.browser.new_context(locale="en-US")
             self.page = self.context.new_page()
             self.page.set_default_timeout(20000)
-            self.page.goto("https://www.tesla.com/inventory/new/my?zip=91766&range=200",
-                           wait_until="domcontentloaded", timeout=30000)
+            load_inventory_page(self.page)
             return self
-        except Exception:
+        except Exception as error:
             self.pw.stop()
-            raise InventoryError("Could not start or load the inventory browser") from None
+            if isinstance(error, InventoryError):
+                raise
+            raise InventoryError("Inventory page initialization failed (%s)" % type(error).__name__) from None
 
     def __exit__(self, *args):
         self.context.close()
