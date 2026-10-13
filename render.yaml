@@ -1,0 +1,26 @@
+# Import this directory as the repository root. Paid service; review cost first.
+services:
+  - type: worker
+    name: tesla-inventory-watcher
+    runtime: docker
+    plan: 1c-2g
+    region: oregon
+    numInstances: 1
+    autoDeployTrigger: off
+    maxShutdownDelaySeconds: 120
+    dockerfilePath: ./Dockerfile
+    disk:
+      name: inventory-history
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /data
+      - key: POLL_SECONDS
+        value: "120"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: ALERT_TO
+        sync: false

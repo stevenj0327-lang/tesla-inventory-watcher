@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+data
+tests
+__pycache__
+**/__pycache__
+.venv
+*.zip
+local-monitor-state.json
