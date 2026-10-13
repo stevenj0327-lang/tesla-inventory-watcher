@@ -1,3 +1,7 @@
+# Current deployment: free GitHub Actions
+
+The public repository now contains the free GitHub Actions workflow and GitHub match-notification adapter. Cloud inventory validation is in progress. No paid Render service or email provider was activated. See [FREE-HOSTING.md](FREE-HOSTING.md) for operation and limits. The Render/email sections below document the earlier optional implementation.
+
 # Tesla inventory email tracker
 
 A standalone cloud worker that checks Tesla inventory every two minutes and emails new matching vehicles. Once deployed, it runs independently of the computer used to create it.
